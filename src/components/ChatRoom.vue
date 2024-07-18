@@ -1,5 +1,15 @@
 <template>
   <div class='ChatRoomBox'>
+    <div class="header">
+      <div>
+        <span>Emqx-Chat</span>
+        <span>Topic: {{ topic }}</span>
+      </div>
+      <div>
+        <a class="iconfont icon-github" href="https://github.com/LarryZhu-dev/emqx-chat" target="_blank"></a>
+        <!-- <span class="iconfont icon-wechat-fill"></span> -->
+      </div>
+    </div>
     <div class="messages">
       <div class="message" v-for="msg in messages" :key="msg.id">
         <div class="messageItemHeader">
@@ -151,6 +161,30 @@ function generateUUID() {
   align-items: flex-start;
   padding: 20px;
 
+  .header {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+
+    >div {
+      display: flex;
+      gap: 10px;
+
+      span,
+      a {
+        cursor: pointer;
+        color: aliceblue;
+
+        &.iconfont {
+          font-size: 24px;
+        }
+      }
+    }
+  }
+
   .messages {
     flex: 1;
     background: #4b4b4b93;
@@ -192,6 +226,11 @@ function generateUUID() {
       padding: 0 12px;
       margin-right: 12px;
       border: none;
+      background-color: #313131;
+    }
+
+    button {
+      background-color: #313131;
     }
   }
 }
