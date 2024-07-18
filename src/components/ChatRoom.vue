@@ -147,6 +147,7 @@ function generateUUID() {
     width: 100%;
     border-radius: 12px;
     padding: 12px;
+    overflow-y: scroll;
 
     .message {
       display: flex;
@@ -155,6 +156,7 @@ function generateUUID() {
       align-items: flex-start;
       margin-bottom: 12px;
       gap: 6px;
+      max-width: 100%;
 
       .messageItemHeader {
         display: flex;
