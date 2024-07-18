@@ -19,20 +19,30 @@
           <span>说：</span>
         </div>
         <div class="messageItemContent">
-          {{ msg.text }}
+          <template v-if="isBase64Image(msg.text)">
+            <img :src="msg.text" alt="Image" class="msg-img" />
+          </template>
+          <template v-else>
+            {{ msg.text }}
+          </template>
         </div>
       </div>
     </div>
-    <div class="inputArea">
-      <input type="text" v-model="inputText" @keyup.enter="sendMessage" />
-      <button @click="sendMessage">Send</button>
+    <div class="user-content">
+      <div v-if="isBase64Image(inputImg)" class="imagePreview">
+        <img :src="inputImg" alt="Image Preview" />
+      </div>
+      <div class="inputArea">
+        <input type="text" v-model="inputText" @keyup.enter="sendMessage" />
+        <button @click="sendMessage">Send</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang='ts'>
 import mqtt from 'mqtt';
-import { ref, onUnmounted, nextTick } from 'vue';
+import { ref, onUnmounted, nextTick, onMounted } from 'vue';
 import { Buffer } from 'buffer';
 import autolog from 'autolog.js';
 
@@ -43,8 +53,9 @@ const messages = ref<{
   username: string;
   randomColor: string;
 }[]>([]);
-const inputText = ref('');
 
+const inputText = ref('');
+const inputImg = ref('')
 /***
  * 浏览器环境
  * 使用协议为 ws 和 wss 的 MQTT over WebSocket 连接
@@ -128,7 +139,7 @@ function sendMessage() {
     clientId: options.clientId,
     username: options.username,
     id: generateUUID(),
-    text: inputText.value,
+    text: inputImg.value && isBase64Image(inputImg.value) ? inputImg.value : inputText.value,
     randomColor: randomColor
   }
   let messageBuffer = Buffer.from(JSON.stringify(message))
@@ -136,11 +147,61 @@ function sendMessage() {
   if (inputText.value) {
     inputText.value = '';
   }
+
+  if (inputImg.value) {
+    inputImg.value = '';
+  }
 }
+
+const isBase64Image = (str: string) => {
+  const base64ImageRegex = /^data:image\/(png|jpeg|gif|bmp|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
+  return base64ImageRegex.test(str) ? true : false
+}
+
+/**
+ * @description 图片处理为base64
+ */
+const getImgFile = async (file: File) => {
+  if (file == null) return autolog.log("Please select an image", "error", 1000);
+  if (!/\.(jpg|jpeg|png|GIF|JPG|PNG)$/.test(file.name)) {
+    return autolog.log("Only images are allowed！", "error", 1000);
+  } else {
+    const reader = new FileReader();
+    reader.onload = async function (event: any) {
+      event.target.result // 获取Base64编码的字符串
+      try {
+        inputImg.value = event.target.result
+      } catch (error) {
+        throw new Error('Error')
+      }
+
+    };
+    // 以DataURL形式读取文件
+    reader.readAsDataURL(file);
+  }
+}
+
 // 销毁客户端实例
 onUnmounted(() => {
   client.end()
 })
+
+onMounted(() => {
+  window.addEventListener("paste", async (event) => {
+    let items = event.clipboardData && event.clipboardData.items;
+    let file: any = null;
+    if (items && items.length) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          file = items[i].getAsFile();
+          break;
+        }
+      }
+    }
+    await getImgFile(file)
+  });
+})
+
 // 生成UUID
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -214,31 +275,53 @@ function generateUUID() {
         .username {
           color: #42b883;
         }
+
+        .msg-img {
+          width: 400px;
+          height: 350px;
+          object-fit: contain;
+          border: 1px solid #d32828;
+        }
       }
     }
   }
 
-  .inputArea {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+
+  .user-content {
     width: 100%;
     margin-top: 12px;
 
-    input {
-      flex: 1;
-      height: 40px;
-      border-radius: 6px;
-      padding: 0 12px;
-      margin-right: 12px;
-      border: none;
-      background-color: #313131;
-      color: #fff;
+    .inputArea {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+
+      input {
+        flex: 1;
+        height: 40px;
+        border-radius: 6px;
+        padding: 0 12px;
+        margin-right: 12px;
+        border: none;
+        background-color: #313131;
+        color: #fff;
+      }
+
+      button {
+        background-color: #313131;
+      }
     }
 
-    button {
-      background-color: #313131;
+    .imagePreview {
+      margin-top: 10px;
+    }
+
+    .imagePreview img {
+      width: 50px;
+      height: 50px;
     }
   }
+
 }
 </style>
