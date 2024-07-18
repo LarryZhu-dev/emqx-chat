@@ -224,6 +224,7 @@ function generateUUID() {
 
   .header {
     padding: 10px;
+    padding-top: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -262,6 +263,11 @@ function generateUUID() {
       margin-bottom: 12px;
       gap: 6px;
       max-width: 100%;
+      color: #fff;
+
+      span {
+        color: #fff;
+      }
 
       .messageItemHeader {
         display: flex;
@@ -299,6 +305,7 @@ function generateUUID() {
         margin-right: 12px;
         border: none;
         background-color: #313131;
+        color: #fff;
       }
 
       button {
