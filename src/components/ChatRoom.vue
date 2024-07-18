@@ -3,7 +3,7 @@
     <div class="messages">
       <div class="message" v-for="msg in messages" :key="msg.id">
         <div class="messageItemHeader">
-          <span class="username" :style="{ color: randomColor }">
+          <span class="username" :style="{ color: msg.randomColor }">
             {{ msg.username }}
           </span>
           <span>说：</span>
@@ -22,7 +22,7 @@
 
 <script setup lang='ts'>
 import mqtt from 'mqtt';
-import { ref, onUnmounted } from 'vue';
+import { ref, onUnmounted, nextTick } from 'vue';
 import { Buffer } from 'buffer';
 import autolog from 'autolog.js';
 
@@ -31,6 +31,7 @@ const messages = ref<{
   text: string;
   clientId: string;
   username: string;
+  randomColor: string;
 }[]>([]);
 const inputText = ref('');
 
@@ -63,7 +64,6 @@ const options = {
   username: generateClientId(),
   password: generateClientId(),
 }
-const randomColor = '#' + Math.floor(Math.random() * 0xffffff).toString(16);
 const client = mqtt.connect(url, options)
 client.on('connect', function () {
   console.log('Connected')
@@ -96,6 +96,14 @@ client.on('message', function (_topic, message) {
   } catch (e) {
   }
   messages.value.push({ ...messageObj });
+  // 滚动到底部
+  nextTick(() => {
+    let messagesBox = document.querySelector('.messages')!
+    messagesBox.scrollTo({
+      top: messagesBox.scrollHeight,
+      behavior: 'smooth'
+    })
+  })
   console.log('messages.value::: ', messages.value);
 })
 
@@ -104,12 +112,14 @@ function generateClientId() {
   return 'user-' + Math.random().toString(16).substr(2, 8)
 }
 // 发送消息
+const randomColor = '#' + Math.floor(Math.random() * 0xffffff).toString(16);
 function sendMessage() {
   let message = {
     clientId: options.clientId,
     username: options.username,
     id: generateUUID(),
     text: inputText.value,
+    randomColor: randomColor
   }
   let messageBuffer = Buffer.from(JSON.stringify(message))
   client.publish(topic, messageBuffer)
