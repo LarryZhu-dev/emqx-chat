@@ -40,7 +40,7 @@ const inputText = ref('');
  * EMQX 的 ws 连接默认端口为 8083，wss 为 8084
  * 注意需要在连接地址后加上一个 path, 例如 /mqtt
  */
-const url = 'ws://broker.emqx.io:8083/mqtt'
+const url = 'wss://broker.emqx.io:8084/mqtt'
 /***
  * Node.js 环境
  * 使用协议为 mqtt 和 mqtts 的 MQTT over TCP 连接
