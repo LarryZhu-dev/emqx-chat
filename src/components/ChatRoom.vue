@@ -233,6 +233,7 @@ function generateUUID() {
       margin-right: 12px;
       border: none;
       background-color: #313131;
+      color: #fff;
     }
 
     button {
