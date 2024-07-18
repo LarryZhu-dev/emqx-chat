@@ -89,7 +89,6 @@ const client = mqtt.connect(url, options)
 client.on('connect', function () {
   console.log('Connected')
   // 订阅主题
-
   client.subscribe(topic, function (err) {
     if (!err) {
       autolog.log('连接成功', 'success')
@@ -116,6 +115,10 @@ client.on('message', function (_topic, message) {
     messageObj = JSON.parse(message.toString())
   } catch (e) {
   }
+  if (messages.value.length > 500) {
+    // 删除前250条消息
+    messages.value.splice(0, 250)
+  }
   messages.value.push({ ...messageObj });
   // 滚动到底部
   nextTick(() => {
@@ -125,7 +128,6 @@ client.on('message', function (_topic, message) {
       behavior: 'smooth'
     })
   })
-  console.log('messages.value::: ', messages.value);
 })
 
 // 生成唯一clientId
