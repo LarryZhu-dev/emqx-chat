@@ -139,6 +139,7 @@ client.on('message', function (_topic, message) {
     let messagesBox = document.querySelector('.messages')!
     const { scrollTop, clientHeight, scrollHeight } = messagesBox;
     let distanceToBottom = scrollHeight - (scrollTop + clientHeight);
+    console.log('distanceToBottom::: ', distanceToBottom);
     if (distanceToBottom <= 100) {
       messagesBox.scrollTo({
         top: messagesBox.scrollHeight,
@@ -172,12 +173,12 @@ function sendMessage() {
     text: inputImg.value && isBase64Image(inputImg.value) ? inputImg.value : inputText.value.trim(),
     randomColor: randomColor
   }
+  if (message.text === '') return
   let messageBuffer = Buffer.from(JSON.stringify(message))
   client.publish(topic, messageBuffer)
   if (inputText.value) {
     inputText.value = '';
   }
-
   if (inputImg.value) {
     inputImg.value = '';
   }
@@ -192,7 +193,7 @@ const isBase64Image = (str: string) => {
  * @description 图片处理为base64
  */
 const getImgFile = async (file: File) => {
-  if(currentPasteIsText.value) {
+  if (currentPasteIsText.value) {
     currentPasteIsText.value = false
     return
   }
