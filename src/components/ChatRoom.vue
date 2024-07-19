@@ -185,8 +185,12 @@ const isBase64Image = (str: string) => {
  * @description 图片处理为base64
  */
 const getImgFile = async (file: File) => {
+  if(currentPasteIsText.value) {
+    currentPasteIsText.value = false
+    return
+  }
   if (file == null) return autolog.log("Please select an image", "error", 1000);
-  if (!/\.(jpg|jpeg|png|GIF|JPG|PNG)$/.test(file.name)) {
+  if (!/\.(jpg|jpeg|png|GIF|JPG|PNG|gif)$/.test(file.type)) {
     return autolog.log("Only images are allowed！", "error", 1000);
   } else {
     const reader = new FileReader();
@@ -209,12 +213,17 @@ onUnmounted(() => {
   client.end()
 })
 
+const currentPasteIsText = ref(false)
+
 onMounted(() => {
   window.addEventListener("paste", async (event) => {
     let items = event.clipboardData && event.clipboardData.items;
     let file: any = null;
     if (items && items.length) {
-      for (var i = 0; i < items.length; i++) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.includes('text')) {
+          currentPasteIsText.value = true
+        }
         if (items[i].type.indexOf('image') !== -1) {
           file = items[i].getAsFile();
           break;
