@@ -3,7 +3,7 @@
     <div class="header">
       <div>
         <span>Emqx-Chat</span>
-        <span>Topic: {{ topic }}</span>
+        <span :tip="`当前话题在线：${onlineUsers.length}`" :tip-position="`bottom`">Topic: {{ topic }}</span>
       </div>
       <div>
         <a class="iconfont icon-github" href="https://github.com/LarryZhu-dev/emqx-chat" target="_blank"></a>
@@ -53,6 +53,7 @@ const messages = ref<{
   username: string;
   randomColor: string;
 }[]>([]);
+const onlineUsers = ref<string[]>([]);
 
 const inputText = ref('');
 const inputImg = ref('')
@@ -92,8 +93,10 @@ client.on('connect', function () {
   client.subscribe(topic, function (err) {
     if (!err) {
       autolog.log('连接成功', 'success')
+      heartbeat()
     }
   })
+  client.subscribe(`${topic}/heartbeat`)
 })
 // 连接失败
 client.on('error', function () {
@@ -114,12 +117,22 @@ client.on('message', function (_topic, message) {
   try {
     messageObj = JSON.parse(message.toString())
   } catch (e) {
+    messageObj = message.toString()
   }
   if (messages.value.length > 500) {
     // 删除前250条消息
     messages.value.splice(0, 250)
   }
-  messages.value.push({ ...messageObj });
+  if (typeof messageObj == 'string') {
+    if (!onlineUsers.value.includes(messageObj)) {
+      onlineUsers.value.push(messageObj)
+      setTimeout(() => {
+        onlineUsers.value = onlineUsers.value.filter((user) => user !== messageObj)
+      }, 16000);
+    }
+  } else {
+    messages.value.push({ ...messageObj });
+  }
   // 滚动到底部
   nextTick(() => {
     let messagesBox = document.querySelector('.messages')!
@@ -129,6 +142,14 @@ client.on('message', function (_topic, message) {
     })
   })
 })
+// 向topic/heartbeat发送心跳包
+function heartbeat() {
+  client.publish(`${topic}/heartbeat`, options.clientId)
+  setInterval(() => {
+    client.publish(`${topic}/heartbeat`, options.clientId)
+  }, 15000)
+
+}
 
 // 生成唯一clientId
 function generateClientId() {
