@@ -3,7 +3,8 @@
     <div class="header">
       <div>
         <span>Emqx-Chat</span>
-        <span :tip="`当前话题在线：${onlineUsers.length}`" :tip-position="`bottom`">Topic: {{ topic }}</span>
+        <span>Topic: {{ topic }}</span>
+        <span>{{ `当前话题在线：${onlineUsers.length}` }}</span>
       </div>
       <div>
         <a class="iconfont icon-github" href="https://github.com/LarryZhu-dev/emqx-chat" target="_blank"></a>
@@ -287,6 +288,12 @@ function generateUUID() {
       gap: 6px;
       max-width: 100%;
       color: #fff;
+
+      .Image {
+        max-width: 50%;
+        max-height: 50%;
+        object-fit: cover;
+      }
 
       span {
         color: #fff;
