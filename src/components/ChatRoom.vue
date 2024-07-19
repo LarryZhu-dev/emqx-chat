@@ -128,7 +128,7 @@ client.on('message', function (_topic, message) {
       onlineUsers.value.push(messageObj)
       setTimeout(() => {
         onlineUsers.value = onlineUsers.value.filter((user) => user !== messageObj)
-      }, 16000);
+      }, 14000);
     }
   } else {
     messages.value.push({ ...messageObj });
