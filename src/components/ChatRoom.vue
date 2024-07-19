@@ -10,7 +10,7 @@
         <!-- <span class="iconfont icon-wechat-fill"></span> -->
       </div>
     </div>
-    <div class="messages">
+    <div class="messages" ref="message">
       <div class="message" v-for="msg in messages" :key="msg.id">
         <div class="messageItemHeader">
           <span class="username" :style="{ color: msg.randomColor }">
@@ -34,7 +34,7 @@
       </div>
       <div class="inputArea">
         <input type="text" v-model="inputText" @keyup.enter="sendMessage" />
-        <button @click="sendMessage">Send</button>
+        <button @click="sendMessage" style="color: #56fd01">Send</button>
       </div>
     </div>
   </div>
@@ -136,12 +136,17 @@ client.on('message', function (_topic, message) {
   // 滚动到底部
   nextTick(() => {
     let messagesBox = document.querySelector('.messages')!
-    messagesBox.scrollTo({
-      top: messagesBox.scrollHeight,
-      behavior: 'smooth'
-    })
+    const { scrollTop, clientHeight, scrollHeight } = messagesBox;
+    let distanceToBottom = scrollHeight - (scrollTop + clientHeight);
+    if (distanceToBottom <= 100) {
+      messagesBox.scrollTo({
+        top: messagesBox.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   })
 })
+
 // 向topic/heartbeat发送心跳包
 function heartbeat() {
   client.publish(`${topic}/heartbeat`, options.clientId)
@@ -158,11 +163,12 @@ function generateClientId() {
 // 发送消息
 const randomColor = '#' + Math.floor(Math.random() * 0xffffff).toString(16);
 function sendMessage() {
+  if (!inputText.value.trim() && !inputImg.value) return
   let message = {
     clientId: options.clientId,
     username: options.username,
     id: generateUUID(),
-    text: inputImg.value && isBase64Image(inputImg.value) ? inputImg.value : inputText.value,
+    text: inputImg.value && isBase64Image(inputImg.value) ? inputImg.value : inputText.value.trim(),
     randomColor: randomColor
   }
   let messageBuffer = Buffer.from(JSON.stringify(message))
@@ -190,7 +196,7 @@ const getImgFile = async (file: File) => {
     return
   }
   if (file == null) return autolog.log("Please select an image", "error", 1000);
-  if (!/\.(jpg|jpeg|png|GIF|JPG|PNG|gif)$/.test(file.type)) {
+  if (!/(jpg|jpeg|png|GIF|JPG|PNG|gif)$/.test(file.type)) {
     return autolog.log("Only images are allowed！", "error", 1000);
   } else {
     const reader = new FileReader();
@@ -255,8 +261,7 @@ function generateUUID() {
   padding: 20px;
 
   .header {
-    padding: 10px;
-    padding-top: 0;
+    padding: 0 10px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
