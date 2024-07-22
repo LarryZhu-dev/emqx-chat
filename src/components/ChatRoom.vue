@@ -4,7 +4,8 @@
       <div>
         <span>Emqx-Chat</span>
         <span>Topic: {{ topic }}</span>
-        <span>{{ `当前话题在线：${onlineUsers.length}` }}</span>
+        <span>{{ `当前话题在线：${Guard_onlineUsersCount > onlineUsers.length ? Guard_onlineUsersCount : onlineUsers.length}`
+          }}</span>
       </div>
       <div>
         <a class="iconfont icon-github" href="https://github.com/LarryZhu-dev/emqx-chat" target="_blank"></a>
@@ -77,15 +78,26 @@ let topic = params.get('topic') as string
 if (!topic) {
   topic = '不朽堡垒'
 }
+type QoS = 0 | 1 | 2
+const clientId = generateClientId()
+const username = generateClientId()
+const password = generateClientId()
 // 创建客户端实例
 const options = {
   // Clean session
   clean: true,
   connectTimeout: 4000,
   // 认证信息
-  clientId: generateClientId(),
-  username: generateClientId(),
-  password: generateClientId(),
+  clientId: clientId,
+  username: username,
+  password: password,
+  // 配置遗言
+  will: {
+    topic: `${topic}/will`,
+    payload: Buffer.from(clientId),
+    qos: 1 as QoS,
+    retain: false
+  }
 }
 const client = mqtt.connect(url, options)
 client.on('connect', function () {
@@ -98,6 +110,7 @@ client.on('connect', function () {
     }
   })
   client.subscribe(`${topic}/heartbeat`)
+  client.subscribe(`${topic}/will`)
 })
 // 连接失败
 client.on('error', function () {
@@ -112,8 +125,22 @@ client.on('close', function () {
   autolog.log('连接已关闭', 'info')
 })
 // 接收消息
-client.on('message', function (_topic, message) {
-  // message is Buffer
+client.on('message', function (__topic, message) {
+  switch (__topic) {
+    case `${topic}`:
+      handleBaseTopic(message)
+      return
+    case `${topic}/heartbeat`:
+      handleHeartbeat(message)
+      return
+    case `${topic}/will`:
+      handleWill(message)
+      return
+  }
+
+})
+// 处理基本消息
+function handleBaseTopic(message: Buffer) {
   let messageObj
   try {
     messageObj = JSON.parse(message.toString())
@@ -124,22 +151,12 @@ client.on('message', function (_topic, message) {
     // 删除前250条消息
     messages.value.splice(0, 250)
   }
-  if (typeof messageObj == 'string') {
-    if (!onlineUsers.value.includes(messageObj)) {
-      onlineUsers.value.push(messageObj)
-      setTimeout(() => {
-        onlineUsers.value = onlineUsers.value.filter((user) => user !== messageObj)
-      }, 14000);
-    }
-  } else {
-    messages.value.push({ ...messageObj });
-  }
+  messages.value.push({ ...messageObj });
   // 滚动到底部
   nextTick(() => {
     let messagesBox = document.querySelector('.messages')!
     const { scrollTop, clientHeight, scrollHeight } = messagesBox;
     let distanceToBottom = scrollHeight - (scrollTop + clientHeight);
-    console.log('distanceToBottom::: ', distanceToBottom);
     if (distanceToBottom <= 100) {
       messagesBox.scrollTo({
         top: messagesBox.scrollHeight,
@@ -147,15 +164,32 @@ client.on('message', function (_topic, message) {
       })
     }
   })
-})
-
+}
+// 处理心跳
+const Guard_onlineUsersCount = ref(0)
+function handleHeartbeat(message: Buffer) {
+  let clientIdWithOnlineCount = message.toString()
+  let [clientId, onlineCount] = clientIdWithOnlineCount.split('_')
+  if (onlineCount) {
+    Guard_onlineUsersCount.value = +onlineCount
+  }
+  if (!onlineUsers.value.includes(clientId)) {
+    onlineUsers.value.push(clientId)
+  }
+}
+// 处理遗言
+function handleWill(message: Buffer) {
+  let clientId = message.toString()
+  if (onlineUsers.value.includes(clientId)) {
+    onlineUsers.value = onlineUsers.value.filter((user) => user !== clientId)
+  }
+}
 // 向topic/heartbeat发送心跳包
 function heartbeat() {
-  client.publish(`${topic}/heartbeat`, options.clientId)
+  client.publish(`${topic}/heartbeat`, `${options.clientId}_${onlineUsers.value.length}`)
   setInterval(() => {
-    client.publish(`${topic}/heartbeat`, options.clientId)
+    client.publish(`${topic}/heartbeat`, `${options.clientId}_${onlineUsers.value.length}`)
   }, 15000)
-
 }
 
 // 生成唯一clientId
@@ -198,7 +232,7 @@ const getImgFile = async (file: File) => {
     return
   }
   if (file == null) return autolog.log("Please select an image", "error", 1000);
-  if (!/(jpg|jpeg|png|GIF|JPG|PNG|gif)$/.test(file.type)) {
+  if (!/(jpg|jpeg|png|GIF|JPG|PNG|gif|webp)$/.test(file.type)) {
     return autolog.log("Only images are allowed！", "error", 1000);
   } else {
     const reader = new FileReader();
