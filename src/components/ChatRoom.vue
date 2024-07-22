@@ -182,6 +182,7 @@ function handleWill(message: Buffer) {
   let clientId = message.toString()
   if (onlineUsers.value.includes(clientId)) {
     onlineUsers.value = onlineUsers.value.filter((user) => user !== clientId)
+    Guard_onlineUsersCount.value--
   }
 }
 // 向topic/heartbeat发送心跳包
