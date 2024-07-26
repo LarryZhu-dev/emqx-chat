@@ -380,6 +380,7 @@ function generateUUID() {
       input {
         flex: 1;
         height: 40px;
+        font-size: 16px;
         border-radius: 6px;
         padding: 0 12px;
         margin-right: 12px;
